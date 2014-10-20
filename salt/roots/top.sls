@@ -1,0 +1,5 @@
+base:
+  '*':
+    - memcached
+    - python
+

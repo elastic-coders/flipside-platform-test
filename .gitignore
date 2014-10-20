@@ -1,0 +1,7 @@
+*.pyc
+__pycache__
+install_salt.sh
+/virtual
+/.secrets
+/.vagrant
+
