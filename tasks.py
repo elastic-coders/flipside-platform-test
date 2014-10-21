@@ -38,12 +38,16 @@ def platform_bootstrap(ctx, target):
 def platform_ssh(ctx, target, args=None):
     if target == 'aws':
         config = get_platform_config()
-        os.execlp('ssh', 'ssh', '-i', config['master']['keypair'],
-                  'ubuntu@{}'.format(config['master']['ip']))
+        cmd = ['ssh', 'ssh', '-i', config['master']['keypair'],
+               'ubuntu@{}'.format(config['master']['ip'])]
     elif target == 'vagrant':
-        os.execlp('vagrant', 'vagrant', 'ssh')
+        cmd = ['vagrant', 'vagrant', 'ssh', '--']
     else:
         print('crazy stuff')
+        return
+    if args:
+        cmd.extend(args)
+    os.execlp(*cmd)
 
 
 @task
@@ -56,11 +60,16 @@ def platform_sync(ctx, target):
         print('crazy stuff')
 
 
+@task
+def platform_deploy(ctx, target):
+    platform_ssh(ctx, target, args=['sudo', 'salt-call', 'state.highstate'])
+
 
 platform = Collection('platform')
 platform.add_task(platform_bootstrap, 'bootstrap')
 platform.add_task(platform_ssh, 'ssh')
 platform.add_task(platform_sync, 'sync')
+platform.add_task(platform_deploy, 'deploy')
 
 ns = Collection()
 ns.add_collection(platform)
