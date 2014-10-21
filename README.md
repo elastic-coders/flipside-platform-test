@@ -62,10 +62,9 @@ Run `invoke platform.bootstrap --target=[aws | host | vagrant]`
 
 AWS:
  - enter your AWS credentials when asked
- - you can login the new machine with `invoke master.ssh`
 
-Vagrant:
- - login with `vagrant ssh`
+you can login the master machine with `invoke platform.ssh [target]`
+
 
 a `.flipside-platform` file is created in the current dir with all the config.
 

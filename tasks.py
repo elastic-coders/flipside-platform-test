@@ -1,5 +1,6 @@
 from invoke import ctask as task, run, Collection
 import os
+import json
 
 
 @task
@@ -30,8 +31,22 @@ def platform_bootstrap(ctx, target):
         provision.main()
 
 
+@task
+def platform_ssh(ctx, target):
+    if target == 'aws':
+        with open('.flipside-config.json', 'r') as f:
+            data = json.load(f)
+        os.execlp('ssh', 'ssh', '-i', data['master']['keypair'],
+                  'ubuntu@{}'.format(data['master']['ip']))
+    elif target == 'vagrant':
+        os.execlp('vagrant', 'vagrant', 'ssh')
+    else:
+        print('crazy stuff')
+
+
 platform = Collection('platform')
 platform.add_task(platform_bootstrap, 'bootstrap')
+platform.add_task(platform_ssh, 'ssh')
 
 ns = Collection()
 ns.add_collection(platform)

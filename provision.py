@@ -43,8 +43,8 @@ def highstate_salt():
 
 
 def main():
-    #install_salt()
-    #setup_salt()
+    install_salt()
+    setup_salt()
     test_salt()
     highstate_salt()
 
