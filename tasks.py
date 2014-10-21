@@ -1,11 +1,14 @@
 from invoke import ctask as task, run, Collection
 import os
 import json
+from flipside_platform.config import get_platform_config
+from flipside_platform.aws import sync_salt
 
 
 @task
 def docker_build(ctx):
     ctx.run('docker build -t elasticcoders/platform-test .', pty=True)
+
 
 @task
 def docker_push(ctx):
@@ -32,21 +35,32 @@ def platform_bootstrap(ctx, target):
 
 
 @task
-def platform_ssh(ctx, target):
+def platform_ssh(ctx, target, args=None):
     if target == 'aws':
-        with open('.flipside-config.json', 'r') as f:
-            data = json.load(f)
-        os.execlp('ssh', 'ssh', '-i', data['master']['keypair'],
-                  'ubuntu@{}'.format(data['master']['ip']))
+        config = get_platform_config()
+        os.execlp('ssh', 'ssh', '-i', config['master']['keypair'],
+                  'ubuntu@{}'.format(config['master']['ip']))
     elif target == 'vagrant':
         os.execlp('vagrant', 'vagrant', 'ssh')
     else:
         print('crazy stuff')
 
 
+@task
+def platform_sync(ctx, target):
+    if target == 'aws':
+        sync_salt()
+    elif target == 'vagrant':
+        print('vagrant is automatically synced through shared folders')
+    else:
+        print('crazy stuff')
+
+
+
 platform = Collection('platform')
 platform.add_task(platform_bootstrap, 'bootstrap')
 platform.add_task(platform_ssh, 'ssh')
+platform.add_task(platform_sync, 'sync')
 
 ns = Collection()
 ns.add_collection(platform)

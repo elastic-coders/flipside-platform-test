@@ -3,4 +3,5 @@ __pycache__
 .vagrant
 .secrets
 install_salt.sh
+.flipside-config.json
 

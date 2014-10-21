@@ -6,6 +6,8 @@ import os
 import time
 import json
 import subprocess
+import glob
+from .config import get_platform_config, set_platform_config
 
 logger = logging.getLogger()
 logging.config.dictConfig({'version': 1, 'root': {'level': 'INFO'}})
@@ -47,27 +49,50 @@ def create_ec2(conn, group_name, keypair_name):
     return addr.public_ip
 
 
-def create_iam():
-    pass
+def _sync_salt(host, key_path):
+    for src, dst in [("salt/roots/*", "/srv/salt"),
+                     ("salt/pillar/*", "/srv/pillar")]:
+        subprocess.check_call(
+            ['scp', '-i', key_path, '-C', '-r'] + \
+            glob.glob(src) + \
+            ['ubuntu@{host}:{dst}'.format(host=host, dst=dst)]
+         )
 
 
-def _provision(ip_address, key_path):
-    host = 'ubuntu@{}'.format(ip_address)
+def sync_salt():
+    config = get_platform_config()
+    _sync_salt(config['master']['ip'], config['master']['keypair'])
+
+
+def _provision(host, key_path):
+    for dir_ in ('/srv/salt', '/srv/pillar'):
+        subprocess.check_call(
+            'ssh -i {key} ubuntu@{host} sudo bash -c '
+            '"mkdir {dir}; chown ubuntu:ubuntu {dir}"'
+            .format(key=key_path, host=host, dir=dir_).split()
+        )
+    _sync_salt(host, key_path)
     subprocess.check_call(
-        'scp -i {} provision.py {}:/tmp'.format(key_path, host).split()
+        'scp -i {key} {script} ubuntu@{host}:/tmp/provision.py'.format(
+            key=key_path,
+            host=host,
+            script=os.path.join(os.path.dirname(__file__), 'provision.py')
+        ).split()
     )
     subprocess.check_call(
-        'ssh -i {} {} sudo /tmp/provision.py'.format(key_path, host).split()
+        'ssh -i {key} ubuntu@{host} sudo /tmp/provision.py'.format(
+            key=key_path,
+            host=host
+        ).split()
     )
 
 
 def provision():
-    with open('.flipside-config.json', 'r') as f:
-        data = json.load(f)
-    _provision(data['master']['ip'], data['master']['keypair'])
+    config = get_platform_config()
+    _provision(config['master']['ip'], config['master']['keypair'])
 
 
-def main():
+def bootstrap():
     access_key = os.environ.get('AWS_ACCESS_KEY_ID')
     if not access_key:
         access_key = input('AWS access key: ')
@@ -97,11 +122,6 @@ def main():
     config = {
         'master': {'ip': public_ip, 'keypair': key_path}
     }
-    with open('.flipside-config.json', 'w') as f:
-        f.write(json.dumps(config))
+    set_platform_config(config)
     conn.close()
     provision()
-
-
-if __name__ == '__main__':
-    main()

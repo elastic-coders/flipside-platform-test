@@ -11,7 +11,7 @@ vagrant-managed local VM and on AWS.
 Developer automation is managed by Docker.
 
 Single-machine setup that includes:
-- salt master & minion
+- saltstack in standalone mode (no master & minion)
 - frontend nginx web server
 - memcache server
 - log rotation
