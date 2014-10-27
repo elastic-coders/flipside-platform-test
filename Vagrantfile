@@ -13,7 +13,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder "salt/pillar/", "/srv/pillar/"
 
 
-  config.vm.provision "shell", path: "flipside_platform/provision.py"
+  config.vm.provision "shell", path: "flipside_platform/provision.py", args: ["--salt-version", "git v2014.7.0rc6"]
 
   config.vm.provider "virtualbox" do |vb|
     vb.customize ["modifyvm", :id, "--memory", "1024"]
