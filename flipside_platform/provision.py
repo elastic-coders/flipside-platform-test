@@ -18,7 +18,7 @@ def install_salt(standalone, version='stable'):
         subprocess.check_call(
             'sh {script} {opts} -n -p python-pip -p python-dev -p libtiff4-dev -p libjpeg8-dev -p zlib1g-dev -p libfreetype6-dev -p liblcms2-dev -p libwebp-dev -p libffi-dev -p cmake {version}'.format(
                 script=f.name,
-                opts='-M -N -X' if standalone else '-i local -A 127.0.0.1',
+                opts='-N -X' if standalone else '-M -i local -A 127.0.0.1',
                 version=version
             ).split()
         )
@@ -45,7 +45,7 @@ def setup_salt(standalone):
     else:
         with open('/etc/salt/master.d/flipside_gitfs.conf', 'w+') as f:
             f.write(gitfs_config)
-        subprocess.check_call('sudo service salt-master restart')
+        subprocess.check_call('sudo service salt-master restart'.split())
         time.sleep(1)
         subprocess.check_call('sudo salt-key -Ay'.split())
 
