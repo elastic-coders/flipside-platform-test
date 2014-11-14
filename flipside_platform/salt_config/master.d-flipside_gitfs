@@ -1,0 +1,7 @@
+filserver_backend:
+  - roots
+  - git
+
+
+gitfs_remotes:
+  - https://github.com/saltstack-formulas/nginx-formula.git

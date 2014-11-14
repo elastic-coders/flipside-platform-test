@@ -2,4 +2,5 @@ base:
   '*':
     - memcached
     - python
+    - uwsgi
 
