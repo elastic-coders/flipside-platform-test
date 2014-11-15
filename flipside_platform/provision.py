@@ -37,8 +37,7 @@ def setup_salt(standalone):
         os.mkdir('/etc/salt/minion.d')
     gitfs_config = 'fileserver_backend:\n  - roots\n  - git\n\ngitfs_remotes:\n  - https://github.com/saltstack-formulas/nginx-formula.git\n'
     if standalone:
-        # XXX use minion.d instead
-        with open('/etc/salt/minion', 'w+') as f:
+        with open('/etc/salt/minion.d/local.config', 'w+') as f:
             f.write('file_client:\n  local\n')
         with open('/etc/salt/minion.d/flipside_gitfs.conf', 'w+') as f:
             f.write(gitfs_config)
@@ -53,12 +52,16 @@ def setup_salt(standalone):
 def test_salt(standalone):
     if standalone:
         return
+    ping = {}
     for i in range(2):
-        ping = json.loads(
-            subprocess.check_output(
-                'sudo salt * test.ping --out json --static'.split()
-            ).decode()
-        )
+        try:
+            ping = json.loads(
+                subprocess.check_output(
+                    'sudo salt * test.ping --out json --static'.split()
+                ).decode()
+            )
+        except subprocess.CalledProcessError:
+            pass
     if ping.get('local'):
         print('OK')
     else:
