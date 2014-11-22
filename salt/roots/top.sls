@@ -1,6 +1,9 @@
 base:
   '*':
     - memcached
+    - nginx.ng
     - python
-    - uwsgi
+    - rsyslog
+    - users
+    - uwsgi_ng
 

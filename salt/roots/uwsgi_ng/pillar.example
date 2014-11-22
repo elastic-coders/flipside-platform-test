@@ -1,0 +1,5 @@
+uwsgi_ng:
+  apps:
+    managed:
+      my_app:
+        config_template: salt://my_app/files/config  # optional

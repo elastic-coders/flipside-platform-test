@@ -1,0 +1,12 @@
+# pidfile control/master.pid
+# master_fifo control/master.fifo
+# uwsgi_socket control/uwsgi.socket
+[uwsgi]
+uwsgi-socket={{ uwsgi_socket }}
+lazy-apps=True
+pidfile={{ pidfile }}
+master-fifo={{ master_fifo }}
+wsgi={{ wsgi_module }}
+workers={{ workers }}
+virtualenv={{ virtualenv }}
+env=

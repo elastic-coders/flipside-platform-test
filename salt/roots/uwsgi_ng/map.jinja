@@ -1,0 +1,6 @@
+{% set uwsgi_ng = salt['grains.filter_by']({
+    'Ubuntu': {
+        'user_home_dir': '/home/ubuntu',
+        'home': '/home'
+    }
+}, merge=salt['pillar.get']('uwsgi_ng:lookup'), default='Ubuntu') %}
