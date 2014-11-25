@@ -23,7 +23,7 @@ def install_salt(standalone, version='stable'):
             ).split()
         )
         if not subprocess.check_output('pip show pygit2'.split()):
-            subprocess.check_call(['bash', '-c', 'wget https://github.com/libgit2/libgit2/archive/v0.21.2.tar.gz && tar xzf v0.21.2.tar.gz && cd libgit2-0.21.2/ && cmake . && make && sudo make install'], cwd='/tmp')
+            subprocess.check_call(['bash', '-c', 'wget https://github.com/libgit2/libgit2/archive/v0.21.2.tar.gz && tar xzf v0.21.2.tar.gz && cd libgit2-0.21.2/ && cmake . && make && sudo make install && sudo ldconfig'], cwd='/tmp')
             subprocess.check_call('pip install pygit2==0.21.4'.split())
         else:
             print('pygit2 already installed')
