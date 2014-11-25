@@ -37,7 +37,7 @@ def setup_salt(standalone):
         os.mkdir('/etc/salt/minion.d')
     if not os.path.exists('/srv/salt/dist'):
         os.mkdir('/srv/salt/dist')
-    gitfs_config = 'fileserver_backend:\n  - roots\n  - git\n\ngitfs_remotes:\n  - https://github.com/saltstack-formulas/nginx-formula.git\n'
+    gitfs_config = 'fileserver_backend:\n  - roots\n  - git\n\ngitfs_remotes:\n  - https://github.com/saltstack-formulas/nginx-formula.git\n  - https://github.com/saltstack-formulas/users-formula.git\n  - https://github.com/saltstack-formulas/rsyslog-formula.git\n'
     if standalone:
         with open('/etc/salt/minion.d/local.config', 'w+') as f:
             f.write('file_client:\n  local\n')
