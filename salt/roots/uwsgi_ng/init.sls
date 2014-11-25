@@ -13,7 +13,6 @@ uwsgi-installed:
 {% macro get_archive_dir(app) -%}
    {{ settings.apps.managed.get(app).get('archive_dir', 'salt://dist') }}
 {%- endmacro %}
-
 {% macro get_app_archive(app, tag='master') -%}
    {{ get_archive_dir(app) ~ '/' ~ app ~ '-' ~ tag ~ '.tgz' }}
 {%- endmacro %}
@@ -26,8 +25,8 @@ uwsgi-installed:
 {% macro get_app_virtualenv(app) -%}
    {{ get_app_home_dir(app) ~ '/virtual_app' }}
 {%- endmacro %}
-{% macro get_app_package_name(app, app_settings) -%}
-   {{ settings.apps.managed.get(app, app_settings).get('package_name', app) }}
+{% macro get_app_package_name(app) -%}
+   {{ settings.apps.managed.get(app).get('package_name', app) }}
 {%- endmacro %}
 {% macro get_app_wheelhouse(app) -%}
    {{ get_app_dist_dir(app) ~ '/wheelhouse' }}
@@ -47,6 +46,12 @@ uwsgi-installed:
 {% macro get_app_uwsgi_pidfile(app) -%}
    get_app_home_dir(app) ~ "/uwsgi/control/uwsgi.pid"
 {%- endmacro %}
+{% macro get_app_uwsgi_workers(app) -%}
+   {{ settings.apps.managed.get(app).get('workers', 4) }}
+{%- endmacro %}
+{% macro get_app_uwsgi_wsgi_module(app) -%}
+   {{ settings.apps.managed.get(app).get('wsgi_module', get_app_package_name(app) ~ ".wsgi") }}
+{%- endmacro %}
 
 
 {% for app, app_settings in settings.apps.managed.items() %}
@@ -58,6 +63,11 @@ uwsgi-installed:
    {% set wheelhouse = get_app_wheelhouse(app) %}
    {% set uwsgi_config_template = get_app_uwsgi_config_template(app) %}
    {% set uwsgi_config = get_app_uwsgi_config(app) %}
+   {% set uwsgi_socket = get_app_uwsgi_socket(app) %}
+   {% set uwsgi_master_fifo = get_app_uwsgi_master_fifo(app) %}
+   {% set uwsgi_pidfile = get_app_uwsgi_pidfile(app) %}
+   {% set uwsgi_workers = get_app_uwsgi_workers(app) %}
+   {% set uwsgi_wsgi_module = get_app_uwsgi_wsgi_module(app) %}
 
 # TODO: Fetch the app
 app-{{ app }}-dist-removed:
@@ -106,14 +116,20 @@ app-{{ app }}-uwsgi-config:
     - group: root
     - mode: 644
     - template: jinja
+    - makedirs: True
     - require:
         - pip: app-{{ app }}-virtualenv-pip
     - defaults:
-        custom_var: "default value"
-        other_var: 123    
+        uwsgi_socket: {{ uwsgi_socket }}
+        uwsgi_pidfile: {{ uwsgi_pidfile }}
+        uwsgi_master_fifo: {{ uwsgi_master_fifo }}
+        uwsgi_workers: {{ uwsgi_workers }}
+        uwsgi_wsgi_module: {{ uwsgi_wsgi_module }}
+        virtualenv: {{ virtualenv }}
 
 # TODO: collect staticfiles from django
 # TODO: collect frontend files
+# TODO: register uwsgi with systemd or whatever
 
 {% endwith %}
 {% endfor %}

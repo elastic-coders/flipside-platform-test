@@ -4,9 +4,9 @@
 [uwsgi]
 uwsgi-socket={{ uwsgi_socket }}
 lazy-apps=True
-pidfile={{ pidfile }}
-master-fifo={{ master_fifo }}
-wsgi={{ wsgi_module }}
-workers={{ workers }}
+pidfile={{ uwsgi_pidfile }}
+master-fifo={{ uwsgi_master_fifo }}
+wsgi={{ uwsgi_wsgi_module }}
+workers={{ uwsgi_workers }}
 virtualenv={{ virtualenv }}
 env=
