@@ -16,14 +16,14 @@ def install_salt(standalone, version='stable'):
         f.write(resp.read())
         f.flush()
         subprocess.check_call(
-            'sh {script} {opts} -n -p python-pip -p python-dev -p libtiff4-dev -p libjpeg8-dev -p zlib1g-dev -p libfreetype6-dev -p liblcms2-dev -p libwebp-dev -p libffi-dev -p cmake {version}'.format(
+            'sh {script} {opts} -n -p python-pip -p python-dev -p libtiff4-dev -p libjpeg8-dev -p zlib1g-dev -p libfreetype6-dev -p liblcms2-dev -p libwebp-dev -p libffi-dev libssl-dev -p cmake {version}'.format(
                 script=f.name,
                 opts='-N -X' if standalone else '-M -i local -A 127.0.0.1',
                 version=version
             ).split()
         )
         if not subprocess.check_output('pip show pygit2'.split()):
-            subprocess.check_call(['bash', '-c', 'wget https://github.com/libgit2/libgit2/archive/v0.21.2.tar.gz && tar xzf v0.21.2.tar.gz && cd libgit2-0.21.2/ && cmake . && make && sudo make install && sudo ldconfig'], cwd='/tmp')
+            subprocess.check_call(['bash', '-c', 'wget https://github.com/libgit2/libgit2/archive/v0.21.2.tar.gz && tar xzf v0.21.2.tar.gz && cd libgit2-0.21.2/ && cmake . && cmake build . && make install && ldconfig'], cwd='/tmp')
             subprocess.check_call('pip install pygit2==0.21.4'.split())
         else:
             print('pygit2 already installed')
