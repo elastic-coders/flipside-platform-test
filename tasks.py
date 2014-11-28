@@ -2,6 +2,7 @@ from invoke import ctask as task, run, Collection
 import os
 import json
 import subprocess
+import shutil
 
 from flipside_platform.config import get_platform_config
 from flipside_platform.aws import sync_salt
@@ -76,6 +77,7 @@ def app_publish(ctx, target, name, archive, tag='master'):
     elif target == 'vagrant':
         if not os.path.exists('.dist'):
             os.mkdir('.dist')
+        shutil.copy(archive, '.dist/{}'.format(archive_name_in_host))
         cmd = ['cp', archive, '.dist/{}'.format(archive_name_in_host)]
         platform_ssh(ctx, target, [
             'cp',
