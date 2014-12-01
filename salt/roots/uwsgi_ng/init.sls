@@ -1,4 +1,5 @@
 {% from "uwsgi_ng/map.jinja" import uwsgi_ng with context %}
+{% from "nginx/ng/map.jinja" import nginx with context %}
 {% set settings = salt['pillar.get']('uwsgi_ng') %}
 
 include:
@@ -17,7 +18,7 @@ uwsgi-installed:
    {{ get_archive_dir(app) ~ '/' ~ app ~ '-' ~ tag ~ '.tgz' }}
 {%- endmacro %}
 {% macro get_app_home_dir(app) -%}
-   {{ settings.apps.managed.get(app).get('home', uwsgi_ng.home ~ app) }}
+   {{ settings.apps.managed.get(app).get('home', uwsgi_ng.home ~ '/' ~ app) }}
 {%- endmacro %}
 {% macro get_app_dist_dir(app) -%}
    {{ get_app_home_dir(app) ~ '/.dist' }}
@@ -28,8 +29,14 @@ uwsgi-installed:
 {% macro get_app_package_name(app) -%}
    {{ settings.apps.managed.get(app).get('package_name', app) }}
 {%- endmacro %}
+{% macro get_app_base_package_name(app) -%}
+   {{ settings.apps.managed.get(app).get('base_package_name', get_app_package_name(app).replace('-', '_')) }}
+{%- endmacro %}
 {% macro get_app_wheelhouse(app) -%}
    {{ get_app_dist_dir(app) ~ '/wheelhouse' }}
+{%- endmacro %}
+{% macro get_app_frontend_dist_dir(app) -%}
+   {{ get_app_dist_dir(app) ~ '/frontend' }}
 {%- endmacro %}
 {% macro get_app_uwsgi_config_template(app) -%}
    {{ settings.apps.managed.get(app).get('config_template', 'salt://uwsgi_ng/files/uwsgi.conf.jinja') }}
@@ -50,7 +57,19 @@ uwsgi-installed:
    {{ settings.apps.managed.get(app).get('workers', 4) }}
 {%- endmacro %}
 {% macro get_app_uwsgi_wsgi_module(app) -%}
-   {{ settings.apps.managed.get(app).get('wsgi_module', get_app_package_name(app) ~ ".wsgi") }}
+   {{ settings.apps.managed.get(app).get('wsgi_module', get_app_base_package_name(app) ~ ".wsgi") }}
+{%- endmacro %}
+{% macro get_app_static_dir(app) -%}
+   {{ settings.apps.managed.get(app).get('static_dir', get_app_home_dir(app) ~ "/static") }}
+{%- endmacro %}
+{% macro get_app_data_dir(app) -%}
+   {{ settings.apps.managed.get(app).get('data_dir', get_app_home_dir(app) ~ "/data") }}
+{%- endmacro %}
+{% macro get_app_media_dir(app) -%}
+   {{ settings.apps.managed.get(app).get('media_dir', get_app_home_dir(app) ~ "/media") }}
+{%- endmacro %}
+{% macro get_django_settings(app) -%}
+   {{ settings.apps.managed.get(app).get('django_settings_module', get_app_base_package_name(app) ~ ".settings" ) }}
 {%- endmacro %}
 
 
@@ -59,6 +78,7 @@ uwsgi-installed:
    {% set archive = get_app_archive(app) %}
    {% set dist = get_app_dist_dir(app) %}
    {% set virtualenv = get_app_virtualenv(app) %}
+   {% set home_dir = get_app_home_dir(app) %}
    {% set package_name = get_app_package_name(app) %}
    {% set wheelhouse = get_app_wheelhouse(app) %}
    {% set uwsgi_config_template = get_app_uwsgi_config_template(app) %}
@@ -68,8 +88,16 @@ uwsgi-installed:
    {% set uwsgi_pidfile = get_app_uwsgi_pidfile(app) %}
    {% set uwsgi_workers = get_app_uwsgi_workers(app) %}
    {% set uwsgi_wsgi_module = get_app_uwsgi_wsgi_module(app) %}
+   {% set static_dir = get_app_static_dir(app) %}
+   {% set frontend_dist = get_app_frontend_dist_dir(app) %}
+   {% set media_dir = get_app_media_dir(app) %}
+   {% set data_dir = get_app_data_dir(app) %}
+   {% set django_settings = get_django_settings(app) %}
 
 # TODO: Fetch the app
+
+
+# extract the app into the system
 app-{{ app }}-dist-removed:
   file.absent:
     - name: {{ dist }}
@@ -93,6 +121,20 @@ app-{{ app }}-virtualenv:
     - require:
         - pkg: python-virtualenv
 
+# install dependencies
+app-{{ app }}-libraries:
+  pkg.installed:
+    - names:
+      - libjpeg62
+
+# uninstall app in virtualenv
+# app-{{ app }}-virtualenv-pip-uninstall:
+#   pip.removed:
+#     - name: {{ package_name }}
+#     - bin_env: {{ virtualenv }}
+
+
+
 # install app in virtualenv
 app-{{ app }}-virtualenv-pip:
   pip.installed:
@@ -100,12 +142,14 @@ app-{{ app }}-virtualenv-pip:
     - find_links: {{ wheelhouse }}
     - no_index: True
     - use_wheel: True
-    - activate: {{ virtualenv }}
+    - bin_env: {{ virtualenv }}
     - use_vt: True
     - require:
         - virtualenv: app-{{ app }}-virtualenv
         - pkg: uwsgi-installed
         - archive: app-{{ app }}-dist-extracted
+        - pkg: app-{{ app }}-libraries
+#        - pip: app-{{ app }}-virtualenv-pip-uninstall
 
 # create uwsgi configuration file
 app-{{ app }}-uwsgi-config:
@@ -127,9 +171,37 @@ app-{{ app }}-uwsgi-config:
         uwsgi_wsgi_module: {{ uwsgi_wsgi_module }}
         virtualenv: {{ virtualenv }}
 
-# TODO: collect staticfiles from django
-# TODO: collect frontend files
-# TODO: register uwsgi with systemd or whatever
+
+# collect assets for frontend
+app-{{ app }}-static-frontend:
+  cmd.run:
+    - name: cp -r {{ frontend_dist }} {{ static_dir }}
+
+# staticfiles
+app-{{ app }}-static-dir:
+  file.directory:
+    - name: {{ static_dir }}
+    - group: {{ nginx.lookup.webuser }}
+
+# collect assets from django static files
+app-{{ app }}-static-django:
+  cmd.run:
+    - name: {{ virtualenv }}/bin/django-admin.py collectstatic --noinput --settings {{ django_settings }}
+    - cwd: {{ home_dir }}
+    - env:
+      - DJANGO_HOME_DIR: {{ dist }}
+      - DJANGO_STATIC_ROOT: {{ static_dir }}
+      - DJANGO_MEDIA_ROOT: {{ media_dir }}
+      - DJANGO_DATA_ROOT: {{ data_dir }}
+
+# make media and data dirs
+app-{{ app }}-media-data-dirs:
+  file.directory:
+    - names:
+      - {{ media_dir }}
+      - {{ data_dir }}
+
+# TODO: fix asset permissions
 
 {% endwith %}
 {% endfor %}

@@ -48,4 +48,4 @@ uwsgi_ng:
     managed:
       {{ app_name }}:
         home: {{ home }}
-        package_name: elastic_website
+        package_name: elastic-website
