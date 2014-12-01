@@ -1,12 +1,13 @@
-# pidfile control/master.pid
-# master_fifo control/master.fifo
-# uwsgi_socket control/uwsgi.socket
 [uwsgi]
 uwsgi-socket={{ uwsgi_socket }}
+chmod-socket=660
 lazy-apps=True
 pidfile={{ uwsgi_pidfile }}
 master-fifo={{ uwsgi_master_fifo }}
 wsgi={{ uwsgi_wsgi_module }}
+plugin=python
 workers={{ uwsgi_workers }}
 virtualenv={{ virtualenv }}
-env=
+uid={{ uwsgi_user }}
+gid={{ uwsgi_group }}
+env= DJANGO_SETTINGS_MODULE={{ django_settings }}

@@ -1,6 +1,6 @@
 {% set app_name = "elastic_website" %}
 {% set home = "/home/elastic_website" %}
-{% set uwsgi_socket = "unix://{{ home }}/uwsgi/control/uwsgi.sock" %}
+{% set uwsgi_socket = home ~ "/uwsgi/control/uwsgi.sock" %}
 
 nginx:
   ng:
@@ -26,7 +26,7 @@ nginx:
               - listen:
                 - 80
               - location /:
-                - uwsgi_pass: {{ uwsgi_socket }}
+                - uwsgi_pass: unix://{{ uwsgi_socket }}
                 - include: uwsgi_params
                 - uwsgi_param:  UWSGI_SCHEME $http_x_forwarded_proto  {# $scheme #}
                 - uwsgi_param:     SERVER_SOFTWARE    nginx/$nginx_version
@@ -50,4 +50,3 @@ uwsgi_ng:
         home: {{ home }}
         package_name: elastic-website
         uwsgi_socket: {{ uwsgi_socket }}
-

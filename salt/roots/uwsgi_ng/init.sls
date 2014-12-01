@@ -9,7 +9,9 @@ include:
 # TODO: optionally install uwsgi in a separate virtualenv
 uwsgi-installed:
    pkg.installed:
-     - name: uwsgi
+     - names:
+       - uwsgi
+       - uwsgi-plugin-python
 
 {% macro get_archive_dir(app) -%}
    {{ settings.apps.managed.get(app).get('archive_dir', 'salt://dist') }}
@@ -39,19 +41,22 @@ uwsgi-installed:
    {{ get_app_dist_dir(app) ~ '/frontend' }}
 {%- endmacro %}
 {% macro get_app_uwsgi_config_template(app) -%}
-   {{ settings.apps.managed.get(app).get('config_template', 'salt://uwsgi_ng/files/uwsgi.conf.jinja') }}
+   {{ settings.apps.managed.get(app).get('config_template', 'salt://uwsgi_ng/files/uwsgi.ini.jinja') }}
 {%- endmacro %}
 {% macro get_app_uwsgi_config(app) -%}
-   {{ get_app_home_dir(app) ~ "/uwsgi/uwsgi.conf" }}
+   {{ get_app_home_dir(app) ~ "/uwsgi/uwsgi.ini" }}
+{%- endmacro %}
+{% macro get_app_uwsgi_control_dir(app) -%}
+   {{ get_app_home_dir(app) ~ "/uwsgi/control" }}
 {%- endmacro %}
 {% macro get_app_uwsgi_master_fifo(app) -%}
-   get_app_home_dir(app) ~ "/uwsgi/control/master.fifo"
+   {{ get_app_uwsgi_control_dir(app) ~ "/master.fifo" }}
 {%- endmacro %}
 {% macro get_app_uwsgi_socket(app) -%}
-   {{ settings.apps.managed.get(app).get('uwsgi_socket', get_app_home_dir(app) ~ "/uwsgi/control/uwsgi.sock") }}
+   {{ settings.apps.managed.get(app).get('uwsgi_socket', get_app_uwsgi_control_dir(app) ~ "/uwsgi.sock") }}
 {%- endmacro %}
 {% macro get_app_uwsgi_pidfile(app) -%}
-   get_app_home_dir(app) ~ "/uwsgi/control/uwsgi.pid"
+   {{ settings.apps.managed.get(app).get('uwsgi_pidfile', get_app_uwsgi_control_dir(app) ~ "/uwsgi.pid") }}
 {%- endmacro %}
 {% macro get_app_uwsgi_workers(app) -%}
    {{ settings.apps.managed.get(app).get('workers', 4) }}
@@ -86,6 +91,7 @@ uwsgi-installed:
    {% set wheelhouse = get_app_wheelhouse(app) %}
    {% set uwsgi_config_template = get_app_uwsgi_config_template(app) %}
    {% set uwsgi_config = get_app_uwsgi_config(app) %}
+   {% set uwsgi_control_dir = get_app_uwsgi_control_dir(app) %}
    {% set uwsgi_socket = get_app_uwsgi_socket(app) %}
    {% set uwsgi_master_fifo = get_app_uwsgi_master_fifo(app) %}
    {% set uwsgi_pidfile = get_app_uwsgi_pidfile(app) %}
@@ -174,7 +180,9 @@ app-{{ app }}-uwsgi-config:
         uwsgi_workers: {{ uwsgi_workers }}
         uwsgi_wsgi_module: {{ uwsgi_wsgi_module }}
         virtualenv: {{ virtualenv }}
-
+        uwsgi_user: {{ user }}
+        uwsgi_group: {{ nginx.lookup.webuser }}
+        django_settings: {{ django_settings }}
 
 # collect assets for frontend
 app-{{ app }}-static-frontend:
@@ -226,9 +234,31 @@ app-{{ app }}-media-data-dirs:
       - group
       - mode
 
+# make uwsgi socket writable by nginx
+app-{{ app }}-uwsgi-socket:
+  file.directory:
+    - names:
+      - {{ media_dir }}
+      - {{ data_dir }}
+    - group: {{ nginx.lookup.webuser }}
+    - user: {{ user }}
+    - dir_mode: 750
+    - file_mode: 640
+    - recurse:
+      - user
+      - group
+      - mode
+
 app-{{ app }}-home-dir-read:
   file.directory:
     - name: {{ home_dir }}
+    - group:  {{ nginx.lookup.webuser }}
+    - dir_mode: 750
+
+app-{{ app }}-control-dir-read:
+  file.directory:
+    - name: {{ uwsgi_control_dir }}
+    - user: {{ user }}
     - group:  {{ nginx.lookup.webuser }}
     - dir_mode: 750
 
