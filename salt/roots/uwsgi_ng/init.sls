@@ -48,7 +48,7 @@ uwsgi-installed:
    get_app_home_dir(app) ~ "/uwsgi/control/master.fifo"
 {%- endmacro %}
 {% macro get_app_uwsgi_socket(app) -%}
-   get_app_home_dir(app) ~ "/uwsgi/control/uwsgi.sock"
+   {{ settings.apps.managed.get(app).get('uwsgi_socket', get_app_home_dir(app) ~ "/uwsgi/control/uwsgi.sock") }}
 {%- endmacro %}
 {% macro get_app_uwsgi_pidfile(app) -%}
    get_app_home_dir(app) ~ "/uwsgi/control/uwsgi.pid"
@@ -67,6 +67,9 @@ uwsgi-installed:
 {%- endmacro %}
 {% macro get_app_media_dir(app) -%}
    {{ settings.apps.managed.get(app).get('media_dir', get_app_home_dir(app) ~ "/media") }}
+{%- endmacro %}
+{% macro get_app_user(app) -%}
+   {{ settings.apps.managed.get(app).get('user', app) }}
 {%- endmacro %}
 {% macro get_django_settings(app) -%}
    {{ settings.apps.managed.get(app).get('django_settings_module', get_app_base_package_name(app) ~ ".settings" ) }}
@@ -93,6 +96,7 @@ uwsgi-installed:
    {% set media_dir = get_app_media_dir(app) %}
    {% set data_dir = get_app_data_dir(app) %}
    {% set django_settings = get_django_settings(app) %}
+   {% set user = get_app_user(app) %}
 
 # TODO: Fetch the app
 
@@ -194,14 +198,47 @@ app-{{ app }}-static-django:
       - DJANGO_MEDIA_ROOT: {{ media_dir }}
       - DJANGO_DATA_ROOT: {{ data_dir }}
 
+# make staticfiles visible to nginx
+app-{{ app }}-static-django-permissions:
+  file.directory:
+    - name: {{ static_dir }}
+    - group: {{ nginx.lookup.webuser }}
+    - dir_mode: 750
+    - file_mode: 640
+    - recurse:
+      - group
+      - mode
+    - require:
+      - cmd: app-{{ app }}-static-django
+
 # make media and data dirs
 app-{{ app }}-media-data-dirs:
   file.directory:
     - names:
       - {{ media_dir }}
       - {{ data_dir }}
+    - group: {{ nginx.lookup.webuser }}
+    - user: {{ user }}
+    - dir_mode: 750
+    - file_mode: 640
+    - recurse:
+      - user
+      - group
+      - mode
 
-# TODO: fix asset permissions
+app-{{ app }}-home-dir-read:
+  file.directory:
+    - name: {{ home_dir }}
+    - group:  {{ nginx.lookup.webuser }}
+    - dir_mode: 750
+
+
+# app-{{ app }}-uwsgi-supervisord:
+#   supervisord:
+#     - running
+#     - name:
+#     - require:
+#       - pkg: supervisor
 
 {% endwith %}
 {% endfor %}
