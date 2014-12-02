@@ -13,11 +13,8 @@ uwsgi-installed:
        - uwsgi
        - uwsgi-plugin-python
 
-{% macro get_archive_dir(app) -%}
-   {{ settings.apps.managed.get(app).get('archive_dir', 'salt://dist') }}
-{%- endmacro %}
-{% macro get_app_archive(app, tag='master') -%}
-   {{ get_archive_dir(app) ~ '/' ~ app ~ '-' ~ tag ~ '.tgz' }}
+{% macro get_app_archive_dir(app) -%}
+   {{ settings.apps.managed.get(app).get('archive_dir', 'salt://dist/' ~ app ~ '/master') }}
 {%- endmacro %}
 {% macro get_app_home_dir(app) -%}
    {{ settings.apps.managed.get(app).get('home', uwsgi_ng.home ~ '/' ~ app) }}
@@ -83,7 +80,7 @@ uwsgi-installed:
 
 {% for app, app_settings in settings.apps.managed.items() %}
 {% with %}
-   {% set archive = get_app_archive(app) %}
+   {% set archive_dir = get_app_archive_dir(app) %}
    {% set dist = get_app_dist_dir(app) %}
    {% set virtualenv = get_app_virtualenv(app) %}
    {% set home_dir = get_app_home_dir(app) %}
@@ -104,26 +101,11 @@ uwsgi-installed:
    {% set django_settings = get_django_settings(app) %}
    {% set user = get_app_user(app) %}
 
-# TODO: Fetch the app
-
-
-# extract the app into the system
-app-{{ app }}-dist-removed:
-  file.absent:
-    - name: {{ dist }}
-
-
 app-{{ app }}-dist-extracted:
-  archive:
-    - extracted
+  file.recurse:
     - name: {{ dist }}
-    - source: {{ archive }}
-    - archive_format: tar
-    - require:
-        - file: app-{{ app }}-dist-removed
+    - source: {{ archive_dir }}
 
-
-# app virtualenv in app homedir
 app-{{ app }}-virtualenv:
   virtualenv.managed:
     - name: {{ virtualenv }}
@@ -132,18 +114,19 @@ app-{{ app }}-virtualenv:
         - pkg: python-virtualenv
 
 # install dependencies
+# TODO: declare this in app manifest
 app-{{ app }}-libraries:
   pkg.installed:
     - names:
       - libjpeg62
 
-# uninstall app in virtualenv
-# app-{{ app }}-virtualenv-pip-uninstall:
-#   pip.removed:
-#     - name: {{ package_name }}
-#     - bin_env: {{ virtualenv }}
-
-
+# uninstall app in virtualenv XXX maybe not needed
+app-{{ app }}-virtualenv-pip-uninstall:
+   pip.removed:
+     - name: {{ package_name }}
+     - bin_env: {{ virtualenv }}
+     - require:
+       - virtualenv: app-{{ app }}-virtualenv
 
 # install app in virtualenv
 app-{{ app }}-virtualenv-pip:
@@ -157,9 +140,9 @@ app-{{ app }}-virtualenv-pip:
     - require:
         - virtualenv: app-{{ app }}-virtualenv
         - pkg: uwsgi-installed
-        - archive: app-{{ app }}-dist-extracted
+        - file: app-{{ app }}-dist-extracted
         - pkg: app-{{ app }}-libraries
-#        - pip: app-{{ app }}-virtualenv-pip-uninstall
+        - pip: app-{{ app }}-virtualenv-pip-uninstall
 
 # create uwsgi configuration file
 app-{{ app }}-uwsgi-config:
@@ -284,12 +267,23 @@ app-{{ app }}-manage-py:
              DJANGO_MEDIA_ROOT: {{ media_dir }}
              DJANGO_DATA_ROOT: {{ data_dir }}
 
+# TODO: spawn uwsgi
+# TODO: restart uwsgi on changes
 # app-{{ app }}-uwsgi-supervisord:
 #   supervisord:
 #     - running
 #     - name:
 #     - require:
 #       - pkg: supervisor
+
+# XX temporary measure
+# XXX make sure uwsgi is up before trying this or it will hang
+app-{{ app }}-uwsgi-restart:
+  cmd.run:
+    - name: echo c > {{ uwsgi_master_fifo }}
+    - require:
+      - pip: app-{{ app }}-virtualenv-pip
+
 
 {% endwith %}
 {% endfor %}

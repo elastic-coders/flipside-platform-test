@@ -63,32 +63,42 @@ def platform_sync(ctx, target):
         print('crazy stuff')
 
 
+
+@task
+def app_create(ctx, target, name):
+    # XXX is this really necessary?
+    platform_ssh(ctx, target, ['mkdir', '-p', '/srv/salt/dist/{}'.format(name)])
+
+
 @task
 def app_publish(ctx, target, name, archive, tag='master'):
-    archive_name_in_host = '{name}-{tag}.tgz'.format(
-        tag=tag,
-        name=name
-    )
+    archive_name_in_host = '{name}/{tag}'.format(tag=tag, name=name)
     if target == 'aws':
         config = get_platform_config()
-        cmd = ['scp', 'scp', '-i', config['master']['keypair'],
-               archive, 'ubuntu@{}:///srv/salt/dist/{}'.format(
-                   config['master']['ip'], archive_name_in_host)]
+        cmd = ['rsync', '-avz', '-e',
+               'ssh -l ubuntu -i {}'.format(config['master']['keypair']),
+               archive.rstrip('/') + '/',
+               '{}:///srv/salt/dist/{}/'.format(config['master']['ip'],
+                                                archive_name_in_host)
+           ]
+        subprocess.check_call(cmd)
     elif target == 'vagrant':
-        if not os.path.exists('.dist'):
-            os.mkdir('.dist')
-        shutil.copy(archive, '.dist/{}'.format(archive_name_in_host))
-        cmd = ['cp', archive, '.dist/{}'.format(archive_name_in_host)]
+        # TODO use rsync
+        dst_dir = '.dist/{}'.format(archive_name_in_host)
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
+        shutil.rmtree(dst_dir)
+        shutil.copytree(archive, dst_dir)
         platform_ssh(ctx, target, [
             'cp',
-            '/vagrant/.dist/{}'.format(archive_name_in_host),
+            '-r',
+            '/vagrant/.dist/{}'.format(name),
             '/srv/salt/dist'])
-    subprocess.check_call(cmd)
 
 
 @task
 def app_deploy(ctx, target, name, tag='master'):
-    platform_ssh('state.highstate')
+    platform_ssh(ctx, target, ['sudo', '-H', 'salt-call', 'state.highstate'])
 
 
 
@@ -98,6 +108,7 @@ platform.add_task(platform_ssh, 'ssh')
 platform.add_task(platform_sync, 'sync')
 
 app = Collection('app')
+app.add_task(app_create, 'create')
 app.add_task(app_publish, 'publish')
 app.add_task(app_deploy, 'deploy')
 

@@ -18,7 +18,7 @@ def install_salt(standalone, version='stable'):
         subprocess.check_call(
             'sh {script} {opts} -n -p python-pip -p python-dev -p libtiff4-dev -p libjpeg8-dev -p zlib1g-dev -p libfreetype6-dev -p liblcms2-dev -p libwebp-dev -p libffi-dev -p libssl-dev -p cmake {version}'.format(
                 script=f.name,
-                opts='-N -X' if standalone else '-M -i local -A 127.0.0.1',
+                opts='-X' if standalone else '-M -i local -A 127.0.0.1',
                 version=version
             ).split()
         )

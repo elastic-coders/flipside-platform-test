@@ -50,6 +50,7 @@ def create_ec2(conn, group_name, keypair_name):
 
 
 def _sync_salt(host, key_path):
+    # TODO: use rsync
     for src, dst in [("salt/roots/*", "/srv/salt"),
                      ("salt/pillar/*", "/srv/pillar")]:
         subprocess.check_call(
@@ -65,6 +66,7 @@ def sync_salt():
 
 
 def _provision(host, key_path):
+    # TODO: add standalone mode arg
     for dir_ in ('/srv/salt', '/srv/pillar'):
         subprocess.check_call(
             'ssh -i {key} ubuntu@{host} sudo bash -c '
@@ -80,7 +82,7 @@ def _provision(host, key_path):
         ).split()
     )
     subprocess.check_call(
-        'ssh -i {key} ubuntu@{host} sudo /tmp/provision.py'.format(
+        'ssh -i {key} ubuntu@{host} sudo /tmp/provision.py --no-standalone'.format(
             key=key_path,
             host=host
         ).split()

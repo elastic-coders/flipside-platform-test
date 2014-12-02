@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+export DJANGO_SETTINGS_MODULE="{{ django_settings }}"
+{%- for key, val in env.items() %}
+export {{ key }}="{{ val }}"
+{%- endfor %}
+exec sudo -u {{ user }} -g {{ group }} --preserve-env {{ virtualenv }}/bin/django-admin.py "$@"

@@ -5,4 +5,5 @@ install_salt.sh
 /.secrets
 /.vagrant
 .flipside-config.json
+/.dist
 
