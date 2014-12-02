@@ -183,6 +183,11 @@ app-{{ app }}-uwsgi-config:
         uwsgi_user: {{ user }}
         uwsgi_group: {{ nginx.lookup.webuser }}
         django_settings: {{ django_settings }}
+        env:
+            DJANGO_HOME_DIR: {{ home_dir }}
+            DJANGO_STATIC_ROOT: {{ static_dir }}
+            DJANGO_MEDIA_ROOT: {{ media_dir }}
+            DJANGO_DATA_ROOT: {{ data_dir }}
 
 # collect assets for frontend
 app-{{ app }}-static-frontend:
@@ -262,6 +267,22 @@ app-{{ app }}-control-dir-read:
     - group:  {{ nginx.lookup.webuser }}
     - dir_mode: 750
 
+app-{{ app }}-manage-py:
+  file.managed:
+    - name: {{ home_dir }}/manage.sh
+    - mode: 750
+    - source: salt://uwsgi_ng/files/manage.sh.jinja
+    - template: jinja
+    - defaults:
+         user: {{ user }} 
+         group: {{ nginx.lookup.webuser }}
+         django_settings: {{ django_settings }}
+         virtualenv: {{ virtualenv }}
+         env:
+             DJANGO_HOME_DIR: {{ home_dir }}
+             DJANGO_STATIC_ROOT: {{ static_dir }}
+             DJANGO_MEDIA_ROOT: {{ media_dir }}
+             DJANGO_DATA_ROOT: {{ data_dir }}
 
 # app-{{ app }}-uwsgi-supervisord:
 #   supervisord:

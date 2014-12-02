@@ -10,4 +10,9 @@ workers={{ uwsgi_workers }}
 virtualenv={{ virtualenv }}
 uid={{ uwsgi_user }}
 gid={{ uwsgi_group }}
+{%- for key, val in env.items() %}
+env= {{ key }}={{ val }}
+{%- endfor %}
+{%- if 'DJANGO_SETTINGS_MODULE' not in env %}
 env= DJANGO_SETTINGS_MODULE={{ django_settings }}
+{%- endif %}
