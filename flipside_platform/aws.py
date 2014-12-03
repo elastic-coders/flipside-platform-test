@@ -50,14 +50,15 @@ def create_ec2(conn, group_name, keypair_name):
 
 
 def _sync_salt(host, key_path):
-    # TODO: use rsync
-    for src, dst in [("salt/roots/*", "/srv/salt"),
-                     ("salt/pillar/*", "/srv/pillar")]:
-        subprocess.check_call(
-            ['scp', '-i', key_path, '-C', '-r'] + \
-            glob.glob(src) + \
-            ['ubuntu@{host}:{dst}'.format(host=host, dst=dst)]
-         )
+    for src, dst in [("salt/roots/", "/srv/salt"),
+                     ("salt/pillar/", "/srv/pillar")]:
+        cmd = ['rsync', '-avz',
+               '--exclude', 'dist',
+               '-e', 'ssh -l ubuntu -i {}'.format(key_path),
+               src.rstrip('/') + '/',
+               '{}:///{}/'.format(host, dst)
+           ]
+        subprocess.check_call(cmd)
 
 
 def sync_salt():
