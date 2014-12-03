@@ -277,10 +277,10 @@ app-{{ app }}-manage-py:
 #       - pkg: supervisor
 
 # XX temporary measure
-# XXX make sure uwsgi is up before trying this or it will hang
 app-{{ app }}-uwsgi-restart:
   cmd.run:
     - name: echo c > {{ uwsgi_master_fifo }}
+    - timeout: 5
     - require:
       - pip: app-{{ app }}-virtualenv-pip
 
