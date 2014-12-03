@@ -31,7 +31,7 @@ nginx:
                 - uwsgi_param:  UWSGI_SCHEME $http_x_forwarded_proto  {# $scheme #}
                 - uwsgi_param:     SERVER_SOFTWARE    nginx/$nginx_version
                 - location ~ ^/favicon\.(ico|png)$:
-                  - rewrite: (.*) /static$1
+                  - rewrite: (.*) /static/images$1
                 - location /static:
                   - alias: {{ home }}/static
 
