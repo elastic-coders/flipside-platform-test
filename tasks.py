@@ -26,10 +26,14 @@ docker.add_task(docker_push, 'push')
 def platform_bootstrap(ctx, target):
     '''Bootstrap the platform on different infrastructure types.'''
     if target == 'aws':
-        ctx.run('docker run -it --rm -v {pwd}/.secrets:/.secrets '
-                'elasticcoders/platform-test python3 bootstrap_aws.py'.format(
-                    pwd=os.path.abspath(os.curdir)),
-                pty=True)
+        # XXX ???
+        import flipside_platform.aws
+        flipside_platform.aws.bootstrap()
+        flipside_platform.aws.provision()
+        # ctx.run('docker run -it --rm -v {pwd}/.secrets:/.secrets '
+        #         'elasticcoders/platform-test python3 -m flipside_platform.aws flipside_platform.aws'.format(
+        #             pwd=os.path.abspath(os.curdir)),
+        #         pty=True)
     elif target == 'vagrant':
         ctx.run('vagrant up --provision')
     else:
