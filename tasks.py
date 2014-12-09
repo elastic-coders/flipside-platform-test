@@ -42,6 +42,22 @@ def platform_bootstrap(ctx, target):
 
 
 @task
+def platform_provision(ctx, target):
+    if target == 'aws':
+        # XXX ???
+        import flipside_platform.aws
+        flipside_platform.aws.provision()
+        # ctx.run('docker run -it --rm -v {pwd}/.secrets:/.secrets '
+        #         'elasticcoders/platform-test python3 -m flipside_platform.aws flipside_platform.aws'.format(
+        #             pwd=os.path.abspath(os.curdir)),
+        #         pty=True)
+    elif target == 'vagrant':
+        ctx.run('vagrant provision')
+    else:
+        assert False
+
+
+@task
 def platform_ssh(ctx, target, args=None):
     if target == 'aws':
         config = get_platform_config()
@@ -110,6 +126,7 @@ platform = Collection('platform')
 platform.add_task(platform_bootstrap, 'bootstrap')
 platform.add_task(platform_ssh, 'ssh')
 platform.add_task(platform_sync, 'sync')
+platform.add_task(platform_provision, 'provision')
 
 app = Collection('app')
 app.add_task(app_create, 'create')
