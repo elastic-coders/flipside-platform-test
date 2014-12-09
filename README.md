@@ -47,10 +47,8 @@ Each application consists of:
 ## Developer environment setup
 
 0. make sure you have ubuntu 14.04
-1. install docker
-2. authenticate into docker hub with `sudo docker login`
-3. install python3 and pip with `sudo apt-get install python3 python3-pip`
-4. install invoke running `sudo pip install invoke`
+1. install python3 and pip with `sudo apt-get install python3 python3-pip`
+2. install packages running `sudo pip install -r requirements.txt`
 
 
 
@@ -68,17 +66,14 @@ you can login the master machine with `invoke platform.ssh [target]`
 
 a `.flipside-platform` file is created in the current dir with all the config.
 
+## Develop and deploy a flipside app
 
-## Develop a flipside app
+Publish the app version with `invoke app.publish [aws|vagrant] [name] [dist-dir]`
 
-Boostrap the app running:
+Deploy the app version with `invoke app.deploy [aws|vagrant] [name]`.
 
-    invoke app.bootstrap <name> -d <app dir> -t python-django-sqlite
 
-A `.flipside-app` is created in the current dir.
+## Upgrade salt states
 
-Publish the app version with `invoke app.publish [name]`
 
-TODO: Test the app running `invoke app.test <name>`
-
-Deploy the version with `invoke app.deploy <name> --tag latest`
+    inv platform.sync [aws|vagrant]
