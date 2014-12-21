@@ -25,15 +25,23 @@ nginx:
               - server_name: www.elastic-coders.com
               - listen:
                 - 80
+              - listen 443 ssl
+              - ssl_certificate /etc/nginx/ssl/elastic-coders/server.crt
+              - ssl_certificate_key /etc/nginx/ssl/elastic-coders/server.key
               - location /:
                 - uwsgi_pass: unix://{{ uwsgi_socket }}
                 - include: uwsgi_params
-                - uwsgi_param:  UWSGI_SCHEME $http_x_forwarded_proto  {# $scheme #}
-                - uwsgi_param:     SERVER_SOFTWARE    nginx/$nginx_version
+                - uwsgi_param: SERVER_SOFTWARE nginx/$nginx_version
                 - location ~ ^/favicon\.(ico|png)$:
-                  - rewrite: (.*) /static/images$1
+                    - rewrite: (.*) /static/images$1
+                - location ~ ^/robots\.txt$:
+                    - rewrite: (.*) /static$1
+                - if ($https = ""):
+                    - rewrite: ^/[a-zA-Z\-]*/admin https://$host$request_uri? permanent
                 - location /static:
-                  - alias: {{ home }}/static
+                    - alias: {{ home }}/static
+                - location /media:
+                    - alias: {{ home }}/media
 
 users:
   {{ app_name }}:
